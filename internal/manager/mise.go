@@ -16,7 +16,7 @@ func (y *Mise) Name() model.Source { return model.SourceMise }
 func (y *Mise) Available() bool { return commandExists("mise") }
 
 func (y *Mise) Scan() ([]model.Package, error) {
-	out, err := exec.Command("mise", "list").Output()
+	out, err := exec.Command("mise", "ls").Output()
 	if err != nil {
 		return nil, err
 	}
