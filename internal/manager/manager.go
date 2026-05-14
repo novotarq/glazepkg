@@ -57,6 +57,7 @@ func All() []Manager {
 		&Scoop{},
 		&Maven{},
 		&Uv{},
+		&Mise{},
 	}
 }
 

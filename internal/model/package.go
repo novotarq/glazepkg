@@ -42,6 +42,7 @@ const (
 	SourceScoop          Source = "scoop"
 	SourceMaven          Source = "maven"
 	SourceUv             Source = "uv"
+	SourceMise           Source = "mise"
 )
 
 type Package struct {
