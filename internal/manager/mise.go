@@ -38,3 +38,29 @@ func (y *Mise) Scan() ([]model.Package, error) {
 	}
 	return pkgs, nil
 }
+
+func (y *Mise) Search(query string) ([]model.Package, error) {
+	out, err := exec.Command("mise", "search", query).Output()
+	if err != nil || len(out) == 0 {
+		return nil, nil
+	}
+
+	var pkgs []model.Package
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "mise ERROR") {
+			break
+		}
+		if strings.Contains(line, "Tool") && strings.Contains(line, "Description") {
+			continue
+		}
+		tokens := strings.Split(line, "  ")
+		name := strings.TrimSpace(tokens[0])
+		description := strings.TrimSpace(tokens[len(tokens)-1])
+
+		pkgs = append(pkgs, model.Package{Name: name, Description: description, Source: model.SourceMise})
+	}
+
+	return pkgs, nil
+}
