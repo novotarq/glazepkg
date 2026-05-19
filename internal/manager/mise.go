@@ -64,3 +64,24 @@ func (y *Mise) Search(query string) ([]model.Package, error) {
 
 	return pkgs, nil
 }
+
+func (y *Mise) CheckUpdates(pkgs []model.Package) map[string]string {
+	// return map of name → latest version
+	// novotarq@burza:~/work/go/glazepkg|⇒  mise outdated yt-dlp node
+	// name    requested  current     latest     source
+	// node    latest     25.9.0      26.1.0     ~/work/go/glazepkg/mise.toml
+	// yt-dlp  latest     2025.12.08  2026.03.17 ~/work/go/glazepkg/mise.toml
+	return make(map[string]string)
+}
+
+func (y *Mise) InstallCmd(name string) *exec.Cmd {
+	return exec.Command("mise", "use", name)
+}
+
+func (y *Mise) RemoveCmd(name string) *exec.Cmd {
+	return exec.Command("mise", "uninstall", name)
+}
+
+func (y *Mise) UpgradeCmd(name string) *exec.Cmd {
+	return exec.Command("mise", "upgrade", name)
+}
