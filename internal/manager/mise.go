@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/neur0map/glazepkg/internal/model"
 )
@@ -22,18 +21,22 @@ func (y *Mise) Scan() ([]model.Package, error) {
 	}
 
 	var pkgs []model.Package
+
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	// skip the description
+	scanner.Scan()
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
-		if len(fields) < 4 {
-			continue
-		}
+
+		name := strings.TrimSpace(fields[0])
+		version := strings.TrimSpace(fields[1])
+
 		pkgs = append(pkgs, model.Package{
-			Name:        fields[0],
-			Version:     fields[1],
-			Source:      model.SourceMise,
-			InstalledAt: time.Now(),
+			Name:    name,
+			Version: version,
+			Source:  model.SourceMise,
 		})
 	}
 	return pkgs, nil
@@ -47,31 +50,57 @@ func (y *Mise) Search(query string) ([]model.Package, error) {
 
 	var pkgs []model.Package
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+
+	// skip the first line - it is either an error or description
+	scanner.Scan()
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "mise ERROR") {
-			break
-		}
-		if strings.Contains(line, "Tool") && strings.Contains(line, "Description") {
-			continue
-		}
-		tokens := strings.Split(line, "  ")
+		tokens := strings.Fields(line)
 		name := strings.TrimSpace(tokens[0])
-		description := strings.TrimSpace(tokens[len(tokens)-1])
+		description := strings.TrimSpace(tokens[1])
 
-		pkgs = append(pkgs, model.Package{Name: name, Description: description, Source: model.SourceMise})
+		pkgs = append(pkgs, model.Package{
+			Name:        name,
+			Description: description,
+			Source:      model.SourceMise,
+		})
 	}
 
 	return pkgs, nil
 }
 
 func (y *Mise) CheckUpdates(pkgs []model.Package) map[string]string {
-	// return map of name → latest version
-	// novotarq@burza:~/work/go/glazepkg|⇒  mise outdated yt-dlp node
-	// name    requested  current     latest     source
-	// node    latest     25.9.0      26.1.0     ~/work/go/glazepkg/mise.toml
-	// yt-dlp  latest     2025.12.08  2026.03.17 ~/work/go/glazepkg/mise.toml
-	return make(map[string]string)
+	updates := make(map[string]string)
+
+	var package_names strings.Builder
+	for i, p := range pkgs {
+		if i > 0 {
+			package_names.WriteString(" ")
+		}
+		package_names.WriteString(p.Name)
+	}
+
+	query := package_names.String()
+
+	out, err := exec.Command("mise", "outdated", query).Output()
+	if err != nil || len(out) == 0 {
+		return updates
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	// always skip the first line
+	scanner.Scan()
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+
+		name := strings.TrimSpace(fields[0])
+		version := strings.TrimSpace(fields[3])
+		updates[name] = version
+	}
+
+	return updates
 }
 
 func (y *Mise) InstallCmd(name string) *exec.Cmd {
@@ -79,7 +108,7 @@ func (y *Mise) InstallCmd(name string) *exec.Cmd {
 }
 
 func (y *Mise) RemoveCmd(name string) *exec.Cmd {
-	return exec.Command("mise", "uninstall", name)
+	return exec.Command("mise", "unuse", name)
 }
 
 func (y *Mise) UpgradeCmd(name string) *exec.Cmd {
